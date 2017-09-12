@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/gorilla/handlers"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -19,6 +21,6 @@ func main() {
 	router.GET("/", index)
 	router.GET("/xyz", index)
 
-	log.Fatal(http.ListenAndServe(":8080", httpLogger(router)))
+	log.Fatal(http.ListenAndServe(":8080", handlers.LoggingHandler(os.Stdout, router)))
 
 }
