@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,7 +25,7 @@ func init() {
 	// Read credentials from creds.json
 	file, err := ioutil.ReadFile("./creds.json")
 	if err != nil {
-		fmt.Println("Error: ", err)
+		log.Fatal(err)
 		panic(err)
 	}
 
@@ -45,24 +44,6 @@ func init() {
 
 }
 
-func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-
-	type profile struct {
-		First string
-		Last  string
-	}
-
-	p := profile{"sun", "kay"}
-	js, err := json.Marshal(p)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	fmt.Println("json:", js)
-
-	w.Write(js)
-}
-
 func authGoogle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, oconf.AuthCodeURL("safe"), http.StatusMovedPermanently)
 }
@@ -71,10 +52,13 @@ func authGoogleCallback(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	// retrieve query param code
 	queryValues := r.URL.Query()
 	code := queryValues.Get("code")
-	fmt.Println("Google code: ", code)
+	log.Println("Google code: ", code)
 
 	// convert code into a token
-	tok, _ := oconf.Exchange(oauth2.NoContext, code)
+	tok, err := oconf.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Client returns an authorized HTTP Client using the provided token
 	client := oconf.Client(oauth2.NoContext, tok)
@@ -82,7 +66,7 @@ func authGoogleCallback(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	// get the information using the http client
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Println("error:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -91,10 +75,10 @@ func authGoogleCallback(w http.ResponseWriter, r *http.Request, p httprouter.Par
 }
 
 func main() {
-	fmt.Println("Startng goauth server: localhost:8080 ....")
+	log.Println("Startng goauth server: localhost:8080 ....")
 
 	router := httprouter.New()
-	router.GET("/", index)
+	//router.GET("/", index)
 	router.GET("/auth/google", authGoogle)
 	router.GET("/auth/google/callback", authGoogleCallback)
 
