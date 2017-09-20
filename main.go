@@ -57,7 +57,9 @@ func authGoogleCallback(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	// convert code into a token
 	tok, err := oconf.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Exchange error")
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
 	}
 
 	// Client returns an authorized HTTP Client using the provided token
@@ -66,7 +68,7 @@ func authGoogleCallback(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	// get the information using the http client
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
-		log.Println("error:", err)
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return
 	}
 	defer resp.Body.Close()
