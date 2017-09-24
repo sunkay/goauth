@@ -5,12 +5,15 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
+
 	"github.com/gorilla/context"
 	"github.com/justinas/alice"
 )
 
-func index(w http.ResponseWriter, r *http.Request) {
+func index(w http.ResponseWriter, r *http.Request) *appError {
 	fmt.Fprintf(w, "Hello authers!!!")
+	return &appError{nil, "error", 500}
 }
 
 func test(w http.ResponseWriter, r *http.Request) {
@@ -18,10 +21,13 @@ func test(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	router := httprouter.New()
+
 	chainHandlers := alice.New(context.ClearHandler, loggingHandler, recoveryHandler)
 
-	http.Handle("/", chainHandlers.ThenFunc(index))
-	http.Handle("/test", chainHandlers.ThenFunc(test))
+	router.GET("/", wrapHandler(chainHandlers.ThenFunc(index)))
+	router.GET("/test", wrapHandler(chainHandlers.ThenFunc(test)))
 
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	log.Fatal(http.ListenAndServe(":3000", router))
 }
