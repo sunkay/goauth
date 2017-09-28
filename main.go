@@ -51,7 +51,11 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func authGoogle(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, oconf.AuthCodeURL("safe"), http.StatusMovedPermanently)
+	if r.Header["goauth"] == nil {
+		http.Redirect(w, r, oconf.AuthCodeURL("safe"), http.StatusMovedPermanently)
+	} else {
+		fmt.Fprintf(w, "Already Authorized")
+	}
 }
 
 func authGoogleCallback(w http.ResponseWriter, r *http.Request) {
@@ -78,8 +82,27 @@ func authGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer resp.Body.Close()
-	data, _ := ioutil.ReadAll(resp.Body)
-	w.Write(data)
+	//data, _ := ioutil.ReadAll(resp.Body)
+	var user struct {
+		Email string `json:"email"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+	c := http.Cookie{
+		Name:     "goauth",
+		Value:    user.Email,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	}
+	//http.SetCookie(w, &c)
+	w.Header().Set("Set-Cookie", c.String())
+	http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	//fmt.Fprintf(w, user.Email)
 	return
 }
 
